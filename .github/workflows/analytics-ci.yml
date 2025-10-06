@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install dependencies
           pip install pandas plotly
 
       - name: Generate static dashboard HTML
