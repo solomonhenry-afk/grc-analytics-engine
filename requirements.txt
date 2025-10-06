@@ -1,5 +1,4 @@
-flask
-pandas
-plotly
-gunicorn
-matplotlib
+Flask>=2.2
+pandas>=2.0
+plotly>=5.15
+gunicorn>=20.1
