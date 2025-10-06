@@ -1,41 +1,40 @@
-#!/usr/bin/env python3
-"""
-Generate a static HTML snapshot of the GRC Analytics Dashboard
-to publish as an artifact in CI.
-"""
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.io as pio
-from pathlib import Path
 from datetime import datetime
 
-data_path = Path("data/compliance_trend.csv")
-output_dir = Path("dashboards")
-output_dir.mkdir(parents=True, exist_ok=True)
-output_html = output_dir / "insight_report.html"
+# Load dataset
+df = pd.read_csv("data/compliance_trend.csv")
 
-df = pd.read_csv(data_path)
-df["Date"] = pd.to_datetime(df["Date"])
-
-latest = df.iloc[-1]
-
-# --- Figures ---
+# Create a Plotly figure
 fig = go.Figure()
+
 fig.add_trace(go.Scatter(
-    x=df["Date"], y=df["Compliance"], mode="lines+markers", name="Compliance %", line=dict(color="#2b8cff", width=3)
+    x=df["Date"], y=df["Compliance"],
+    mode="lines+markers",
+    name="Compliance (%)",
+    line=dict(color="green", width=3)
 ))
 fig.add_trace(go.Scatter(
-    x=df["Date"], y=df["ResidualRisk"], mode="lines+markers", name="Residual Risk", yaxis="y2",
-    line=dict(color="#ff7f50", width=3, dash="dash")
+    x=df["Date"], y=df["ResidualRisk"],
+    mode="lines+markers",
+    name="Residual Risk",
+    yaxis="y2",
+    line=dict(color="red", width=3)
 ))
+
 fig.update_layout(
-    title=f"GRC Analytics Report — {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
-    xaxis=dict(title="Date"),
-    yaxis=dict(title="Compliance (%)", range=[0, 100]),
-    yaxis2=dict(title="Residual Risk", overlaying="y", side="right"),
-    legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center"),
+    title="GRC Analytics — Compliance vs Risk Trend",
+    xaxis_title="Date",
+    yaxis=dict(title="Compliance (%)", color="green"),
+    yaxis2=dict(title="Residual Risk", overlaying="y", side="right", color="red"),
+    legend=dict(x=0.01, y=0.99, bordercolor="gray", borderwidth=1),
+    template="plotly_white",
+    height=600
 )
 
-pio.write_html(fig, file=str(output_html), include_plotlyjs="cdn", auto_open=False)
+# Save static HTML snapshot
+output_path = "dashboards/insight_report.html"
+fig.write_html(output_path, include_plotlyjs="cdn")
 
-print(f"[INFO] Dashboard snapshot saved to {output_html}")
+print(f"[INFO] Dashboard generated: {output_path}")
+print(f"[INFO] Snapshot timestamp: {datetime.utcnow()} UTC")
