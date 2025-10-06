@@ -29,32 +29,35 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: "0 23 * * *"   # daily 11 PM UTC
+    - cron: "0 23 * * *"   # daily at 11 PM UTC
   workflow_dispatch:
 
 jobs:
-  build-and-upload:
+  build-dashboard:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: Install deps
-        run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
 
-      - name: Run Flask generation test (headless)
-        run: python3 app.py & sleep 5  # quick smoke test (non-blocking)
+      - name: Generate static dashboard HTML
+        run: |
+          mkdir -p dashboards
+          python3 scripts/generate_static_dashboard.py
 
-      - name: Upload dashboard artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: grc-dashboard
-          path: templates,dashboards,reports || true
+          name: GRC-Analytics-Report
+          path: dashboards/insight_report.html
 
 jobs:
   analyze:
