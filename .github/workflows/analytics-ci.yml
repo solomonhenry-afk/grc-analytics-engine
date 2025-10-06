@@ -1,28 +1,3 @@
-name: GRC Analytics Refresh
-on:
-  schedule:
-    - cron: "0 23 * * *"   # nightly run
-  workflow_dispatch:
-
-jobs:
-  refresh:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Install deps
-        run: pip install pandas matplotlib
-      - name: Run analytics
-        run: python3 analytics/analyze_kri.py
-      - name: Upload Dashboard Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: GRC-Insight-Report
-          path: dashboards/insight_report.html
-
 name: GRC Analytics CI
 
 on:
@@ -35,6 +10,7 @@ on:
 jobs:
   build-dashboard:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,6 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install pandas plotly
 
       - name: Generate static dashboard HTML
         run: |
@@ -58,62 +35,3 @@ jobs:
         with:
           name: GRC-Analytics-Report
           path: dashboards/insight_report.html
-
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install pandas matplotlib plotly flask
-
-      - name: Run analytics engine
-        run: |
-          python analytics/analyze_kri.py
-
-      - name: Generate static Plotly dashboard
-        run: |
-          mkdir -p dashboards
-          python3 - <<'PY'
-          import pandas as pd, plotly.express as px
-          df = pd.read_csv("data/compliance_trend.csv")
-          fig = px.line(df, x="Date", y=["Compliance", "ResidualRisk"],
-                        title="GRC Compliance & Residual Risk Trend",
-                        markers=True, color_discrete_sequence=["#2ca02c","#d62728"])
-          fig.write_html("dashboards/flask_dashboard.html")
-          fig.write_image("dashboards/flask_dashboard.png")
-          print("✅ Dashboard generated successfully.")
-          PY
-
-      - name: Upload report artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: GRC-Dashboard-Reports
-          path: |
-            dashboards/flask_dashboard.html
-            dashboards/flask_dashboard.png
-            analytics/insight_report.html
-            analytics/insight_trend.png
-
-      - name: Email GRC Analytics Report
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "GRC Analytics Dashboard — ${{ github.repository }}"
-          body: "Automated report generated from your GRC Analytics CI pipeline."
-          to: ${{ secrets.RECIPIENT_EMAIL }}
-          from: "GRC Automation Bot <${{ secrets.SMTP_USERNAME }}>"
-          attachments: |
-            dashboards/flask_dashboard.html
-            analytics/insight_report.html
