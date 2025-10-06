@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: grc-analytics-dashboard
+    env: python
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: GRC_ENV
+        value: production
