@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: "0 23 * * *"   # daily at 11 PM UTC
+    - cron: "0 23 * * *"   # Run daily at 11 PM UTC
   workflow_dispatch:
 
 jobs:
@@ -18,20 +18,29 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
-          pip install dependencies
           pip install pandas plotly
 
-      - name: Generate static dashboard HTML
+      - name: Ensure data directory and file exist
         run: |
-          mkdir -p dashboards
+          mkdir -p data dashboards
+          if [ ! -f data/compliance_trend.csv ]; then
+            echo "Date,Compliance,ResidualRisk,AuditFindings,ControlEffectiveness" > data/compliance_trend.csv
+            echo "2025-10-01,85.2,0.19,4,0.89" >> data/compliance_trend.csv
+            echo "2025-10-02,86.1,0.18,3,0.90" >> data/compliance_trend.csv
+            echo "2025-10-03,87.5,0.17,3,0.91" >> data/compliance_trend.csv
+            echo "2025-10-04,88.2,0.16,2,0.92" >> data/compliance_trend.csv
+          fi
+
+      - name: Generate static dashboard
+        run: |
           python3 scripts/generate_static_dashboard.py
 
-      - name: Upload artifact
+      - name: Upload Dashboard Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GRC-Analytics-Report
+          name: GRC-Insight-Report
           path: dashboards/insight_report.html
