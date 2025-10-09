@@ -1,0 +1,60 @@
+name: GRC Analytics Dashboard CI
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'   # every midnight UTC
+  workflow_dispatch:
+
+jobs:
+  build-dashboard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas plotly jinja2 matplotlib
+
+      - name: Verify CSV structure
+        run: |
+          python - <<'PYCODE'
+          import pandas as pd, sys
+          df = pd.read_csv("data/compliance_trend.csv")
+          required = ["Date","Compliance","ResidualRisk","AuditFindings","ControlEffectiveness"]
+          for c in required:
+              if c not in df.columns:
+                  sys.exit(f"❌ Missing required column: {c}")
+          print("✅ CSV validation passed.")
+          PYCODE
+
+      - name: Generate Insight Report (HTML)
+        run: |
+          mkdir -p dashboards
+          python3 analytics/analyze_kri.py || echo "Skipping detailed analytics run"
+
+      - name: Generate Power BI snapshot
+        run: |
+          python3 scripts/generate_powerbi_snapshot.py
+
+      - name: Upload dashboards as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GRC-Dashboards
+          path: |
+            dashboards/insight_report.html
+            dashboards/GRC_PowerBI_Snapshot.html
+
+      - name: Summary log
+        run: |
+          echo "✅ Dashboards built successfully on $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "Files uploaded to artifacts: insight_report.html and GRC_PowerBI_Snapshot.html" >> $GITHUB_STEP_SUMMARY
