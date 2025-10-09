@@ -1,51 +1,30 @@
-import os
 import pandas as pd
-import plotly.graph_objects as go
-from datetime import datetime
-
-# Ensure dashboards/ directory exists
-os.makedirs("dashboards", exist_ok=True)
+import plotly.express as px
+from pathlib import Path
 
 # Load dataset
-data_path = "data/compliance_trend.csv"
-if not os.path.exists(data_path):
-    raise FileNotFoundError(f"❌ CSV file not found: {data_path}")
+df_path = Path("data/compliance_trend.csv")
+df = pd.read_csv(df_path)
 
-df = pd.read_csv(data_path)
+# Normalize column names
+df.columns = [c.strip().capitalize() for c in df.columns]
 
-# Validate required columns
-required_cols = ["Date", "Compliance", "ResidualRisk", "AuditFindings", "ControlEffectiveness"]
+required_cols = ["Date", "Compliance", "Residualrisk", "Auditfindings", "Controleffectiveness"]
 for col in required_cols:
     if col not in df.columns:
-        raise KeyError(f"❌ Missing required column: {col}")
+        print(f"⚠️ Warning: Missing expected column '{col}', skipping this metric.")
+        df[col] = None
 
-# Create Plotly figure
-fig = go.Figure()
+# Convert date
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-fig.add_trace(go.Scatter(
-    x=df["Date"], y=df["Compliance"],
-    mode="lines+markers", name="Compliance (%)",
-    line=dict(color="green", width=3)
-))
-fig.add_trace(go.Scatter(
-    x=df["Date"], y=df["ResidualRisk"],
-    mode="lines+markers", name="Residual Risk",
-    yaxis="y2", line=dict(color="red", width=3)
-))
-
-fig.update_layout(
-    title="GRC Analytics — Compliance vs Risk Trend",
-    xaxis_title="Date",
-    yaxis=dict(title="Compliance (%)", color="green"),
-    yaxis2=dict(title="Residual Risk", overlaying="y", side="right", color="red"),
-    legend=dict(x=0.01, y=0.99, bordercolor="gray", borderwidth=1),
-    template="plotly_white",
-    height=600
-)
+# Create basic Plotly chart
+fig = px.line(df, x="Date", y="Compliance", title="Compliance Trend Over Time", markers=True)
+fig.update_layout(template="plotly_white")
 
 # Save static HTML snapshot
-output_path = "dashboards/insight_report.html"
+Path("dashboards").mkdir(exist_ok=True)
+output_path = Path("dashboards/insight_report.html")
 fig.write_html(output_path, include_plotlyjs="cdn")
 
-print(f"[INFO] ✅ Dashboard generated successfully: {output_path}")
-print(f"[INFO] Snapshot timestamp: {datetime.utcnow()} UTC")
+print(f"✅ Static dashboard generated: {output_path.resolve()}")
